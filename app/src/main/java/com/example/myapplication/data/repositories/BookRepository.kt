@@ -24,4 +24,16 @@ class BookRepository {
         }
         return null
     }
+
+
+    suspend fun updateBook(id: Int, book: Libro): Libro? {
+        try{
+            val retroFitInstance = RetrofitInstance.api
+            return retroFitInstance.updateBook(id, book)
+        }catch (e: Exception){
+            e.printStackTrace()
+        }
+        return null
+    }
+
 }

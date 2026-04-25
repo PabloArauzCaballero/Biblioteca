@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.NavScreens
 import com.example.myapplication.ui.ViewModels.BooksViewModel
 import com.example.myapplication.ui.ViewModels.GenreViewModel
+import com.example.myapplication.ui.screens.BookFormScreen
 import com.example.myapplication.ui.screens.BookListScreen
 import com.example.myapplication.ui.screens.GenreListScreen
 import com.example.myapplication.ui.screens.HomeScreen
@@ -56,6 +57,13 @@ fun NavigationApp(
                 modifier = Modifier,
                 vm = vm,
                 navController = navController
+            )
+        }
+
+        composable(NavScreens.BOOK_FORM.name){
+            BookFormScreen(
+                modifier = Modifier,
+                navController = navController,
             )
         }
 

@@ -18,10 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,44 +58,7 @@ fun BookListScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Row (
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ){
-                        IconButton(
-                            modifier = Modifier.size(48.dp),
-                            onClick = {
-                                navController.navigate(NavScreens.BOOK_FORM)
-                            }
-                        ) {
-                            Icon(
-                                Icons.Filled.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        Text(
-                            text = "Biblioteca",
-                            fontWeight = FontWeight.Bold
-                        )
-                        IconButton(
-                            onClick = {
-                                navController.navigate(NavScreens.HOME.name)
-                            },
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Home,
-                                contentDescription = "Ir al inicio",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }                    }
-                }
-            )
+            BookListScreenHeader(navController)
         }
     ) { innerPadding ->
         BookList(
@@ -109,6 +70,53 @@ fun BookListScreen(
         )
     }
 }
+
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BookListScreenHeader(
+    navController: NavHostController
+){
+    CenterAlignedTopAppBar(
+        title = {
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                IconButton(
+                    modifier = Modifier.size(48.dp),
+                    onClick = {
+                        navController.navigate(NavScreens.BOOK_FORM)
+                    }
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Text(
+                    text = "Biblioteca",
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(
+                    onClick = {
+                        navController.navigate(NavScreens.HOME.name)
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Home,
+                        contentDescription = "Ir al inicio",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }                    }
+        }
+    )
+}
+
 
 @Composable
 fun BookList(

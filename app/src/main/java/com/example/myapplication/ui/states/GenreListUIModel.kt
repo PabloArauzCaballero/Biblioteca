@@ -6,5 +6,5 @@ data class GenreListUIModel (
     val genresList: List<Genero>,
     val selectedGenreId:Int?=null,
     val selectedGenre: Genero? = null,
-    val isLoading: Boolean? = true,
-    )
+    val isLoading: Boolean? = true
+)
