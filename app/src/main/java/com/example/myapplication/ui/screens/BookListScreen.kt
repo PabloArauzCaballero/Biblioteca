@@ -48,7 +48,6 @@ import com.example.myapplication.data.models.Libro
 import com.example.myapplication.ui.NavScreens
 import com.example.myapplication.ui.ViewModels.BooksViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookListScreen(
     navController: NavHostController,
@@ -64,14 +63,51 @@ fun BookListScreen(
         BookList(
             modifier = Modifier.padding(innerPadding),
             vm = vm,
-            onNavigate = {
-                navController.navigate(NavScreens.BOOK_FORM.name)
+            onNavigate = { bookId ->
+                navController.navigate("${NavScreens.BOOK_FORM.name}/$bookId")
             }
         )
     }
 }
 
+@Composable
+fun BookList(
+    modifier: Modifier = Modifier,
+    vm: BooksViewModel,
+    onNavigate: (Int) -> Unit
+) {
+    val bookListState by vm.state.collectAsState()
 
+    when {
+        bookListState.isLoading == true -> {
+            LoadingContent(modifier = modifier)
+        }
+
+        bookListState.bookList.isEmpty() -> {
+            EmptyBooksContent(modifier = modifier)
+        }
+
+        else -> {
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(
+                    items = bookListState.bookList,
+                    key = { book -> book.id }
+                ) { book ->
+                    BookItem(
+                        item = book,
+                        onClick = {
+                            onNavigate(book.id)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,47 +151,6 @@ fun BookListScreenHeader(
                 }                    }
         }
     )
-}
-
-
-@Composable
-fun BookList(
-    modifier: Modifier = Modifier,
-    vm: BooksViewModel,
-    onNavigate: () -> Unit
-) {
-    val bookListState by vm.state.collectAsState()
-
-    when {
-        bookListState.isLoading == true -> {
-            LoadingContent(modifier = modifier)
-        }
-
-        bookListState.bookList.isEmpty() -> {
-            EmptyBooksContent(modifier = modifier)
-        }
-
-        else -> {
-            LazyColumn(
-                modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(
-                    items = bookListState.bookList,
-                    key = { book -> book.id }
-                ) { book ->
-                    BookItem(
-                        item = book,
-                        onClick = {
-                            vm.selectItem(book.id)
-                            onNavigate()
-                        }
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable

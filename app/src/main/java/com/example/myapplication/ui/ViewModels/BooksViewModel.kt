@@ -40,15 +40,6 @@ class BooksViewModel: ViewModel() {
                 selectedBookId = id
             )
         }
-        fetchBookItem(id)
     }
 
-    fun fetchBookItem(id: Int)= viewModelScope.launch{
-        val bookResult = repository.getBookById(id)
-        _state.update{
-            it.copy(
-                selectedBook = bookResult
-            )
-        }
-    }
 }

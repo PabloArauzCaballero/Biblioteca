@@ -5,7 +5,7 @@ import com.example.myapplication.data.models.Genero
 import com.example.myapplication.data.models.Libro
 import com.example.myapplication.data.repositories.BookRepository
 import com.example.myapplication.data.repositories.GenreRepository
-import com.example.myapplication.ui.states.BookFormUiModel
+import com.example.myapplication.ui.states.BookFormUIModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,11 +13,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class BooksFormViewModel: ViewModel() {
-        private val _state: MutableStateFlow<BookFormUiModel> = MutableStateFlow(
-            BookFormUiModel()
+        private val _state: MutableStateFlow<BookFormUIModel> = MutableStateFlow(
+            BookFormUIModel()
     )
 
-    val state: StateFlow<BookFormUiModel> = _state.asStateFlow()
+    val state: StateFlow<BookFormUIModel> = _state.asStateFlow()
     val repository = BookRepository()
     val genreRepository = GenreRepository()
 
@@ -93,7 +93,22 @@ class BooksFormViewModel: ViewModel() {
         }
     }
 
+    fun fetchBookItem(id: Int)= viewModelScope.launch{
+        val bookResult = repository.getBookById(id)
+        _state.update{
+            it.copy(
+                selectedBook = bookResult
+            )
+        }
+    }
 
+    fun clearForm() {
+        _state.update {
+            it.copy(
+                selectedBook = null
+            )
+        }
 
+    }
 
 }

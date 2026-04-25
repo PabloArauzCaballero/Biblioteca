@@ -26,39 +26,39 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import com.example.myapplication.data.models.Genero
 import com.example.myapplication.ui.NavScreens
 import com.example.myapplication.ui.ViewModels.BooksFormViewModel
-import com.example.myapplication.ui.ViewModels.BooksViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookFormScreen(
     navController: NavHostController,
+    bookId: Int?,
     modifier: Modifier = Modifier,
-    listBooksVM: BooksViewModel = viewModel(),
-    formBooksVM: BooksFormViewModel = viewModel(),
+    formBooksVM: BooksFormViewModel = BooksFormViewModel()
 ) {
+    LaunchedEffect(bookId) {
+        if (bookId != null) {
+            formBooksVM.fetchBookItem(bookId)
+        } else {
+            formBooksVM.clearForm()
+        }
+    }
+
     Scaffold(
         topBar = {
             BookFormScreenHeader(
                 navController = navController,
-                listBooksVM = listBooksVM
+                formBooksVM = formBooksVM
             )
         },
         modifier = modifier
@@ -66,7 +66,6 @@ fun BookFormScreen(
         BookFormScreenBody(
             navController = navController,
             formBooksVM = formBooksVM,
-            listBooksVM = listBooksVM,
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -76,11 +75,15 @@ fun BookFormScreen(
 @Composable
 fun BookFormScreenHeader(
     navController: NavHostController,
-    listBooksVM: BooksViewModel = viewModel(),
+    formBooksVM: BooksFormViewModel = BooksFormViewModel()
 ) {
-    val selectedBook = listBooksVM.state.collectAsState().value.selectedBook
+    val formInfo by formBooksVM.state.collectAsState()
 
-    val title = selectedBook?.nombre ?: "Registro Libro"
+    val title = if (formInfo.selectedBook != null) {
+        formInfo.selectedBook!!.nombre.ifBlank { "Editar libro" }
+    } else {
+        "Registro Libro"
+    }
 
     CenterAlignedTopAppBar(
         title = {
@@ -146,9 +149,7 @@ fun GenreSelect(
             readOnly = true,
             label = { Text("Género") },
             trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(
-                    expanded = expanded
-                )
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
             modifier = Modifier
                 .menuAnchor()
@@ -162,16 +163,12 @@ fun GenreSelect(
             if (safeGenres.isEmpty()) {
                 DropdownMenuItem(
                     text = { Text("No hay géneros disponibles") },
-                    onClick = {
-                        expanded = false
-                    }
+                    onClick = { expanded = false }
                 )
             } else {
                 safeGenres.forEach { genre ->
                     DropdownMenuItem(
-                        text = {
-                            Text(genre.nombre)
-                        },
+                        text = { Text(genre.nombre) },
                         onClick = {
                             onGenreSelected(genre)
                             expanded = false
@@ -185,13 +182,12 @@ fun GenreSelect(
 
 @Composable
 fun BookFormScreenBody(
-    navController: NavHostController,
-    formBooksVM: BooksFormViewModel = viewModel(),
-    listBooksVM: BooksViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    formBooksVM: BooksFormViewModel,
+    modifier: Modifier = Modifier,
+    navController: NavHostController
 ) {
-    val selectedBook = listBooksVM.state.collectAsState().value.selectedBook
-    val formInfo = formBooksVM.state.collectAsState().value
+    val formInfo by formBooksVM.state.collectAsState()
+    val selectedBook = formInfo.selectedBook
 
     var name by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
@@ -223,6 +219,24 @@ fun BookFormScreenBody(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ){
+            if (imagen.isNotBlank()) {
+                AsyncImage(
+                    model = imagen,
+                    contentDescription = "Vista previa de la imagen del libro",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Text("Pega un enlace de imagen para ver la vista previa.")
+            }
+
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
                 value = name,
@@ -231,6 +245,12 @@ fun BookFormScreenBody(
                 modifier = Modifier.weight(1f)
             )
 
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             OutlinedTextField(
                 value = author,
                 onValueChange = { author = it },
@@ -239,17 +259,11 @@ fun BookFormScreenBody(
             )
         }
 
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = editorial,
-                onValueChange = { editorial = it },
-                label = { Text("Editorial") },
-                modifier = Modifier.weight(1f)
-            )
-
             OutlinedTextField(
                 value = imagen,
                 onValueChange = { imagen = it },
@@ -258,17 +272,17 @@ fun BookFormScreenBody(
             )
         }
 
-        if (imagen.isNotBlank()) {
-            AsyncImage(
-                model = imagen,
-                contentDescription = "Vista previa de la imagen del libro",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp),
-                contentScale = ContentScale.Fit
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            OutlinedTextField(
+                value = imagen,
+                onValueChange = { imagen = it },
+                label = { Text("Imagen URL") },
+                modifier = Modifier.weight(1f)
             )
-        } else {
-            Text("Pega un enlace de imagen para ver la vista previa.")
         }
 
         Row(
@@ -282,6 +296,13 @@ fun BookFormScreenBody(
                 modifier = Modifier.weight(1f),
                 minLines = 3
             )
+
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
 
             OutlinedTextField(
                 value = calificacion,
@@ -297,8 +318,9 @@ fun BookFormScreenBody(
 
         GenreSelect(
             genres = formInfo.genresList,
-            selectedGenre = null,
+            selectedGenre = formInfo.selectedGenre,
             onGenreSelected = { genre ->
+                formBooksVM.selectGenre(genre)
                 formBooksVM.addGenre(genre)
             },
             modifier = Modifier.fillMaxWidth()
