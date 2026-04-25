@@ -61,7 +61,7 @@ fun GenreListScreen(
             modifier = Modifier.padding(innerPadding),
             vm = vm,
             onNavigate = {
-                navController.navigate(NavScreens.BOOK_EDIT)
+                navController.navigate(NavScreens.BOOK_FORM)
             }
         )
     }

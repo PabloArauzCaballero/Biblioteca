@@ -20,6 +20,7 @@ import com.example.myapplication.ui.ViewModels.BooksViewModel
 import com.example.myapplication.ui.ViewModels.GenreViewModel
 import com.example.myapplication.ui.screens.BookListScreen
 import com.example.myapplication.ui.screens.GenreListScreen
+import com.example.myapplication.ui.screens.HomeScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,8 +42,15 @@ fun NavigationApp(
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavScreens.GENRES_LIST.name
+        startDestination = NavScreens.HOME.name
     ){
+        composable(NavScreens.HOME.name){
+            HomeScreen(
+                modifier = Modifier,
+                navController = navController
+            )
+        }
+
         composable(NavScreens.BOOKS_LIST.name){
             BookListScreen(
                 modifier = Modifier,

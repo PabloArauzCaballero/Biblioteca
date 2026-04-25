@@ -5,5 +5,5 @@ enum class NavScreens {
     GENRES_LIST,
     GENRE_EDIT,
     BOOKS_LIST,
-    BOOK_EDIT,
+    BOOK_FORM,
 }
