@@ -1,5 +1,7 @@
 package com.example.myapplication.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +68,7 @@ fun BookListScreen(
             modifier = Modifier.padding(innerPadding),
             vm = vm,
             onNavigate = { bookId ->
+                // Es el encargado de mandar el ID para que se haga fetch del book en el form context
                 navController.navigate("${NavScreens.BOOK_FORM.name}/$bookId")
             }
         )
@@ -79,6 +84,7 @@ fun BookList(
     val bookListState by vm.state.collectAsState()
 
     when {
+        // Si esta cargando mostrar simbolo de cargando
         bookListState.isLoading == true -> {
             LoadingContent(modifier = modifier)
         }
@@ -116,39 +122,41 @@ fun BookListScreenHeader(
 ){
     CenterAlignedTopAppBar(
         title = {
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ){
-                IconButton(
-                    modifier = Modifier.size(48.dp),
-                    onClick = {
-                        navController.navigate(NavScreens.BOOK_FORM)
+                Row (
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+
+                    ){
+                    IconButton(
+                        modifier = Modifier.size(48.dp),
+                        onClick = {
+                            navController.navigate("${NavScreens.BOOK_FORM.name}/")
+                        }
+                    ) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
-                ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        text = "Biblioteca",
+                        fontWeight = FontWeight.Bold
                     )
+                    IconButton(
+                        onClick = {
+                            navController.navigate(NavScreens.HOME.name)
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Home,
+                            contentDescription = "Ir al inicio",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
-                Text(
-                    text = "Biblioteca",
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(
-                    onClick = {
-                        navController.navigate(NavScreens.HOME.name)
-                    },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Home,
-                        contentDescription = "Ir al inicio",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }                    }
         }
     )
 }
@@ -158,6 +166,10 @@ fun BookItem(
     item: Libro,
     onClick: () -> Unit
 ) {
+    /*
+        ElevatedCard para poner cartas con sombreado y
+        que sean clickeable.
+     */
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -174,7 +186,8 @@ fun BookItem(
         ) {
             BookCover(
                 imageUrl = item.imagen,
-                title = item.nombre
+                title = item.nombre,
+                modifier = Modifier.width(86.dp)
             )
 
             Spacer(modifier = Modifier.width(14.dp))
@@ -243,11 +256,13 @@ fun BookItem(
 @Composable
 fun BookCover(
     imageUrl: String,
-    title: String
+    title: String,
+    modifier: Modifier = Modifier,
 ) {
+    // Surfance es un contenedor con un contexto semantico: DAR SENSACION
     Surface(
-        modifier = Modifier
-            .size(width = 86.dp, height = 124.dp)
+        modifier = modifier
+            .aspectRatio(0.69f)     // Mejor trabajar con aspect radio
             .clip(RoundedCornerShape(14.dp)),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
@@ -292,11 +307,15 @@ fun RatingAndIsbnRow(
 fun GenreList(
     item: Libro
 ) {
+    // FlowRow sirve para hacer wrapped rows (se va hacia abajo si no hay espacio)
+    // Assit Chip se usa para mostrar una etiqueta secundaria
+
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        item.generos.take(3).forEach { genero ->
+        item.generos.take(10).forEach { genero ->
+
             AssistChip(
                 onClick = {},
                 label = {
@@ -308,7 +327,7 @@ fun GenreList(
             )
         }
 
-        if (item.generos.size > 3) {
+        if (item.generos.size > 10) {
             AssistChip(
                 onClick = {},
                 label = {

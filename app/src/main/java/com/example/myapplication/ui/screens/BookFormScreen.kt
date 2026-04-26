@@ -13,9 +13,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,11 +96,11 @@ fun BookFormScreenHeader(
                 IconButton(
                     modifier = Modifier.size(48.dp),
                     onClick = {
-                        navController.navigate(NavScreens.BOOK_FORM.name)
+                        navController.navigate(NavScreens.BOOKS_LIST.name)
                     }
                 ) {
                     Icon(
-                        Icons.Filled.Add,
+                        Icons.Filled.ArrowBack,
                         contentDescription = "Nuevo libro",
                         modifier = Modifier.size(24.dp)
                     )
@@ -111,17 +112,18 @@ fun BookFormScreenHeader(
                 )
 
                 IconButton(
+                    modifier = Modifier.size(48.dp),
                     onClick = {
                         navController.navigate(NavScreens.HOME.name)
-                    },
-                    modifier = Modifier.size(48.dp)
+                    }
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Home,
-                        contentDescription = "Ir al inicio",
+                        Icons.Filled.Home,
+                        contentDescription = "Home",
                         modifier = Modifier.size(24.dp)
                     )
                 }
+
             }
         }
     )
@@ -234,6 +236,7 @@ fun BookFormScreenBody(
             }
 
         }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -259,15 +262,14 @@ fun BookFormScreenBody(
             )
         }
 
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
-                value = imagen,
-                onValueChange = { imagen = it },
-                label = { Text("Imagen URL") },
+                value = editorial,
+                onValueChange = { name = it },
+                label = { Text("Editorial") },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -276,7 +278,6 @@ fun BookFormScreenBody(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
             OutlinedTextField(
                 value = imagen,
                 onValueChange = { imagen = it },
@@ -346,5 +347,24 @@ fun BookFormScreenBody(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ){
+            Button(
+                onClick = {
+                    when {
+                        selectedBook == null -> {
+                            //post
+                        }
+
+                        else -> {
+
+                        }
+                    }
+                }
+            ) { }
+        }
     }
 }

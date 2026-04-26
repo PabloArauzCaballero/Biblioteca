@@ -59,6 +59,7 @@ fun NavigationApp(
         }
 
         composable("${NavScreens.BOOK_FORM.name}/{bookId}") { backStackEntry ->
+            // Obtener el id el libro desde el path
             val bookId = backStackEntry.arguments
                 ?.getString("bookId")
                 ?.toIntOrNull()
