@@ -26,7 +26,7 @@ class BooksFormViewModel: ViewModel() {
     }
 
     fun saveChangesBook (
-        id: Int,
+        id: Int?,
         nombre: String,
         autor: String,
         editorial: String,
@@ -73,7 +73,6 @@ class BooksFormViewModel: ViewModel() {
             )
         }
     }
-
 
     fun fetchGenres() = viewModelScope.launch {
         val result = genreRepository.getGenreList()

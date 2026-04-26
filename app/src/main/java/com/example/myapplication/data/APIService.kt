@@ -26,7 +26,7 @@ interface APIService {
 
     @PUT("libros/{id}")
     suspend fun updateBook(
-        @Path("id")id:Int,
+        @Path("id") id: Int?,
         @Body book: Libro,
     ): Libro
 

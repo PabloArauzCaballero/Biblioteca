@@ -1,7 +1,7 @@
 package com.example.myapplication.data.models
 
 data class Libro(
-    val id: Int,
+    val id: Int?,
     val nombre: String,
     val autor: String,
     val editorial: String,

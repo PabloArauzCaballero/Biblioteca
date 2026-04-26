@@ -1,7 +1,6 @@
 package com.example.myapplication.data.repositories
 
 import com.example.myapplication.data.RetrofitInstance
-import com.example.myapplication.data.models.Genero
 import com.example.myapplication.data.models.Libro
 
 class BookRepository {
@@ -26,7 +25,7 @@ class BookRepository {
     }
 
 
-    suspend fun updateBook(id: Int, book: Libro): Libro? {
+    suspend fun updateBook(id: Int?, book: Libro): Libro? {
         try{
             val retroFitInstance = RetrofitInstance.api
             return retroFitInstance.updateBook(id, book)

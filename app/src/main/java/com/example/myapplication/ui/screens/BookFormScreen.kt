@@ -195,6 +195,7 @@ fun BookFormScreenBody(
     var author by remember { mutableStateOf("") }
     var editorial by remember { mutableStateOf("") }
     var imagen by remember { mutableStateOf("") }
+    var isbn by remember { mutableStateOf("") }
     var sinopsis by remember { mutableStateOf("") }
     var calificacion by remember { mutableStateOf("") }
 
@@ -203,6 +204,7 @@ fun BookFormScreenBody(
         author = selectedBook?.autor.orEmpty()
         editorial = selectedBook?.editorial.orEmpty()
         imagen = selectedBook?.imagen.orEmpty()
+        isbn = selectedBook?.isbn.orEmpty()
         sinopsis = selectedBook?.sinopsis.orEmpty()
         calificacion = selectedBook?.calificacion?.toString().orEmpty()
 
@@ -291,6 +293,18 @@ fun BookFormScreenBody(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
+                value = isbn,
+                onValueChange = { isbn = it },
+                label = { Text("ISBN") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(
                 value = sinopsis,
                 onValueChange = { sinopsis = it },
                 label = { Text("Sinopsis") },
@@ -299,6 +313,7 @@ fun BookFormScreenBody(
             )
 
         }
+
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -355,16 +370,24 @@ fun BookFormScreenBody(
             Button(
                 onClick = {
                     when {
-                        selectedBook == null -> {
-                            //post
-                        }
-
-                        else -> {
-
+                        selectedBook != null -> {
+                            formBooksVM.saveChangesBook(
+                                id = formInfo.selectedBook?.id,
+                                nombre = name,
+                                autor = author,
+                                editorial = editorial,
+                                imagen = imagen,
+                                sinopsis = sinopsis,
+                                isbn = isbn,
+                                calificacion = calificacion.toInt(),
+                                generos = formInfo.selectedGenres.orEmpty(),
+                            )
                         }
                     }
                 }
-            ) { }
+            ) {
+                Text("Guardar")
+            }
         }
     }
 }

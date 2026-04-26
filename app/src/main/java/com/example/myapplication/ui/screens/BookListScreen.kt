@@ -79,7 +79,7 @@ fun BookListScreen(
 fun BookList(
     modifier: Modifier = Modifier,
     vm: BooksViewModel,
-    onNavigate: (Int) -> Unit
+    onNavigate: (Int?) -> Unit
 ) {
     val bookListState by vm.state.collectAsState()
 
@@ -101,7 +101,7 @@ fun BookList(
             ) {
                 items(
                     items = bookListState.bookList,
-                    key = { book -> book.id }
+                    key = { book -> book.id!! }
                 ) { book ->
                     BookItem(
                         item = book,
