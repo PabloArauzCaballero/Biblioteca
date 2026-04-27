@@ -24,6 +24,15 @@ class BookRepository {
         return null
     }
 
+    suspend fun createBook(book: Libro): Libro? {
+        try{
+            val retroFitInstance = RetrofitInstance.api
+            return retroFitInstance.createBook(book)
+        }catch (e: Exception){
+            e.printStackTrace()
+        }
+        return null
+    }
 
     suspend fun updateBook(id: Int?, book: Libro): Libro? {
         try{
@@ -35,7 +44,7 @@ class BookRepository {
         return null
     }
 
-    suspend fun deleteBook(id: Int): Result<Unit> {
+    suspend fun deleteBook(id: Int?): Result<Unit> {
         return try {
             val response = RetrofitInstance.api.deleteBook(id)
             if (response.isSuccessful) {

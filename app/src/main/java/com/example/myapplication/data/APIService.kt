@@ -38,6 +38,11 @@ interface APIService {
         @Path("id") id: Int
     ): Response<Unit>
 
+    @POST("libros")
+    suspend fun createBook(
+        @Body book: Libro,
+    ): Libro
+
     @PUT("libros/{id}")
     suspend fun updateBook(
         @Path("id") id: Int?,
@@ -46,7 +51,7 @@ interface APIService {
 
     @DELETE("libros/{id}")
     suspend fun deleteBook(
-        @Path("id") id: Int
+        @Path("id") id: Int?
     ): Response<Unit>
 
 }
