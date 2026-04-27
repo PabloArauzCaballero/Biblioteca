@@ -15,17 +15,30 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -44,8 +57,21 @@ fun GenreListScreen(
     modifier: Modifier = Modifier,
     vm: GenreViewModel = viewModel()
 ) {
+    val state by vm.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.deleteErrorMessage) {
+        state.deleteErrorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            vm.clearDeleteError()
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -53,16 +79,25 @@ fun GenreListScreen(
                         text = "Géneros",
                         fontWeight = FontWeight.Bold
                     )
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            navController.navigate(NavScreens.GENRE_EDIT.name)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Crear género"
+                        )
+                    }
                 }
             )
         }
     ) { innerPadding ->
         GenreListContent(
             modifier = Modifier.padding(innerPadding),
-            vm = vm,
-            onNavigate = {
-                navController.navigate(NavScreens.BOOK_FORM)
-            }
+            vm = vm
         )
     }
 }
@@ -70,12 +105,23 @@ fun GenreListScreen(
 @Composable
 fun GenreListContent(
     modifier: Modifier = Modifier,
-    vm: GenreViewModel,
-    onNavigate: () -> Unit
+    vm: GenreViewModel
 ) {
     val genreState by vm.state.collectAsState()
+    val errorMessage = genreState.errorMessage
 
-    if (genreState.genresList.isEmpty()) {
+    if (genreState.isLoading) {
+        LoadingGenresContent(modifier = modifier)
+    } else if (errorMessage != null) {
+        ErrorGenresContent(
+            message = errorMessage,
+            modifier = modifier,
+            onRetry = {
+                vm.clearError()
+                vm.retryFetchGenres()
+            }
+        )
+    } else if (genreState.genresList.isEmpty()) {
         EmptyGenresContent(
             modifier = modifier
         )
@@ -93,18 +139,58 @@ fun GenreListContent(
                     item = genre,
                     onClick = {
                         vm.selectItem(genre.id)
-                        onNavigate()
+                    },
+                    onDeleteClick = {
+                        vm.requestDeleteGenre(genre)
                     }
                 )
             }
         }
+    }
+
+    val pendingDeleteGenre = genreState.pendingDeleteGenre
+    if (pendingDeleteGenre != null) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!genreState.isDeletingGenre) {
+                    vm.cancelDeleteGenreRequest()
+                }
+            },
+            title = {
+                Text("Eliminar genero")
+            },
+            text = {
+                Text("Estas seguro de eliminar '${pendingDeleteGenre.nombre}'?")
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !genreState.isDeletingGenre,
+                    onClick = {
+                        vm.confirmDeleteGenre()
+                    }
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !genreState.isDeletingGenre,
+                    onClick = {
+                        vm.cancelDeleteGenreRequest()
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
 @Composable
 fun GenreItem(
     item: Genero,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -129,13 +215,30 @@ fun GenreItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = item.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar genero"
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -208,3 +311,47 @@ fun EmptyGenresContent(
         }
     }
 }
+
+@Composable
+fun LoadingGenresContent(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+fun ErrorGenresContent(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Error al cargar generos",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onRetry) {
+                Text("Reintentar")
+            }
+        }
+    }
+}
+

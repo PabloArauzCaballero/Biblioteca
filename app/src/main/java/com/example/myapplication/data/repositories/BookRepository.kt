@@ -1,7 +1,6 @@
 package com.example.myapplication.data.repositories
 
 import com.example.myapplication.data.RetrofitInstance
-import com.example.myapplication.data.models.Genero
 import com.example.myapplication.data.models.Libro
 
 class BookRepository {
@@ -34,6 +33,20 @@ class BookRepository {
             e.printStackTrace()
         }
         return null
+    }
+
+    suspend fun deleteBook(id: Int): Result<Unit> {
+        return try {
+            val response = RetrofitInstance.api.deleteBook(id)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No se pudo eliminar el libro (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
     }
 
 }
