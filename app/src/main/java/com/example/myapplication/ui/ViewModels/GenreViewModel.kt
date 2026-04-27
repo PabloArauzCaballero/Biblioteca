@@ -142,10 +142,26 @@ class GenreViewModel: ViewModel() {
     }
 
     fun createGenre() = viewModelScope.launch {
+        if (state.value.isSubmitting) return@launch
+
         val name = state.value.newGenreName.trim()
+        val normalizedName = normalizeGenreName(name)
         if (name.isBlank()) {
             _state.update {
                 it.copy(newGenreNameError = "El nombre del genero es obligatorio")
+            }
+            return@launch
+        }
+
+        val localDuplicate = state.value.genresList.any {
+            normalizeGenreName(it.nombre) == normalizedName
+        }
+        if (localDuplicate) {
+            _state.update {
+                it.copy(
+                    newGenreNameError = "Este genero ya existe.",
+                    submitErrorMessage = null
+                )
             }
             return@launch
         }
@@ -156,6 +172,34 @@ class GenreViewModel: ViewModel() {
                 submitErrorMessage = null,
                 newGenreNameError = null
             )
+        }
+
+        // Revalidamos contra API para evitar duplicados por datos desactualizados en memoria.
+        val existingGenresResult = repository.getGenreListResult()
+        if (existingGenresResult.isFailure) {
+            _state.update {
+                it.copy(
+                    isSubmitting = false,
+                    submitErrorMessage = "No se pudo validar si el genero ya existe. Reintenta."
+                )
+            }
+            return@launch
+        }
+
+        val existingGenres = existingGenresResult.getOrDefault(emptyList())
+        val apiDuplicate = existingGenres.any {
+            normalizeGenreName(it.nombre) == normalizedName
+        }
+        if (apiDuplicate) {
+            _state.update {
+                it.copy(
+                    genresList = existingGenres,
+                    isSubmitting = false,
+                    newGenreNameError = "Este genero ya existe.",
+                    submitErrorMessage = null
+                )
+            }
+            return@launch
         }
 
         val result = repository.createGenre(name)
@@ -177,6 +221,10 @@ class GenreViewModel: ViewModel() {
                 )
             }
         }
+    }
+
+    private fun normalizeGenreName(value: String): String {
+        return value.trim().lowercase().replace("\\s+".toRegex(), " ")
     }
 
     fun selectItem(id: Int){

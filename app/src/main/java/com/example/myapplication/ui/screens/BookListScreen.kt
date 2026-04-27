@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -83,8 +84,7 @@ fun BookListScreen(
             modifier = Modifier.padding(innerPadding),
             vm = vm,
             onNavigate = { bookId ->
-                // Es el encargado de mandar el ID para que se haga fetch del book en el form context
-                navController.navigate("${NavScreens.BOOK_FORM.name}/$bookId")
+                navController.navigate("${NavScreens.BOOK_DETAIL.name}/$bookId")
             }
         )
     }
@@ -94,14 +94,24 @@ fun BookListScreen(
 fun BookList(
     modifier: Modifier = Modifier,
     vm: BooksViewModel,
-    onNavigate: (Int?) -> Unit
+    onNavigate: (Int) -> Unit
 ) {
     val bookListState by vm.state.collectAsState()
 
     when {
         // Si esta cargando mostrar simbolo de cargando
-        bookListState.isLoading == true -> {
+        bookListState.isLoading -> {
             LoadingContent(modifier = modifier)
+        }
+
+        bookListState.fetchErrorMessage != null -> {
+            ErrorBooksContent(
+                message = bookListState.fetchErrorMessage!!,
+                modifier = modifier,
+                onRetry = {
+                    vm.fetchBooks()
+                }
+            )
         }
 
         bookListState.bookList.isEmpty() -> {
@@ -121,7 +131,7 @@ fun BookList(
                     BookItem(
                         item = book,
                         onClick = {
-                            onNavigate(book.id)
+                            book.id?.let(onNavigate)
                         },
                         onDeleteClick = {
                             vm.requestDelete(book)
@@ -450,6 +460,39 @@ fun EmptyBooksContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+fun ErrorBooksContent(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Error al cargar libros",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Button(onClick = onRetry) {
+                Text("Reintentar")
+            }
         }
     }
 }

@@ -30,6 +30,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -50,6 +52,7 @@ import coil3.compose.AsyncImage
 import com.example.myapplication.data.models.Genero
 import com.example.myapplication.ui.NavScreens
 import com.example.myapplication.ui.ViewModels.BooksFormViewModel
+import com.example.myapplication.ui.ViewModels.BooksViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,8 +60,12 @@ fun BookFormScreen(
     navController: NavHostController,
     bookId: Int?,
     modifier: Modifier = Modifier,
-    formBooksVM: BooksFormViewModel = BooksFormViewModel()
+    formBooksVM: BooksFormViewModel = BooksFormViewModel(),
+    listVM: BooksViewModel
 ) {
+    val formInfo by formBooksVM.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(bookId) {
         if (bookId != null) {
             formBooksVM.fetchBookItem(bookId)
@@ -67,7 +74,29 @@ fun BookFormScreen(
         }
     }
 
+    LaunchedEffect(formInfo.errorMessage) {
+        formInfo.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            formBooksVM.clearError()
+        }
+    }
+
+    LaunchedEffect(formInfo.successMessage) {
+        formInfo.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            formBooksVM.clearSuccess()
+        }
+    }
+
+    LaunchedEffect(formInfo.changesSavedCorrectly) {
+        if (formInfo.changesSavedCorrectly) {
+            listVM.fetchBooks()
+            formBooksVM.consumeSaveSuccess()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             BookFormScreenHeader(
                 navController = navController,
@@ -230,9 +259,6 @@ fun BookFormScreenBody(
             Text("Guardando cambios...")
         }
 
-        formInfo.errorMessage?.let { message ->
-            Text(text = message)
-        }
 
         if (!isCreating && !formInfo.isEditModeEnabled) {
             Text("Modo lectura. Presiona el botón de edición para modificar este libro.")
@@ -370,9 +396,13 @@ fun BookFormScreenBody(
         )
 
         Text(
-            text = "Géneros seleccionados",
+            text = "Géneros seleccionados *",
             fontWeight = FontWeight.Bold
         )
+
+        if (formInfo.selectedGenres.orEmpty().isEmpty()) {
+            Text("Debes seleccionar al menos un género.")
+        }
 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),

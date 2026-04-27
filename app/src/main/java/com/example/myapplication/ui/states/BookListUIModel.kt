@@ -6,6 +6,7 @@ data class BookListUIModel (
     val selectedBookId: Int? = null,
     val isOpenListGenres: Boolean? = false,
     val isLoading: Boolean = true,
+    val fetchErrorMessage: String? = null,
     val pendingDeleteBook: Libro? = null,
     val isDeleting: Boolean = false,
     val errorMessage: String? = null,
