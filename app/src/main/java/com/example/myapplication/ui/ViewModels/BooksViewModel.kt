@@ -26,17 +26,31 @@ class BooksViewModel: ViewModel() {
     }
 
     fun fetchBooks() = viewModelScope.launch {
-        _state.update { it.copy(isLoading = true, errorMessage = null) }
-        val result = repository.getBookList()
-        _state.update {
-            it.copy(
-                bookList = result,
-                isLoading = false,
-            )
+        _state.update { it.copy(isLoading = true, fetchErrorMessage = null) }
+
+        val result = repository.getBookListResult()
+        if (result.isSuccess) {
+            _state.update {
+                it.copy(
+                    bookList = result.getOrDefault(emptyList()),
+                    isLoading = false,
+                    fetchErrorMessage = null
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    bookList = emptyList(),
+                    isLoading = false,
+                    fetchErrorMessage = result.exceptionOrNull()?.message
+                        ?: "No se pudieron cargar los libros"
+                )
+            }
         }
     }
 
     fun selectItem(id: Int){
+
         _state.update {
             it.copy(
                 selectedBookId = id

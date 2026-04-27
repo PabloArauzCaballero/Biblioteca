@@ -39,6 +39,46 @@ class BooksFormViewModel: ViewModel() {
         _state.update { it.copy(errorMessage = null) }
     }
 
+    fun clearSuccess() {
+        _state.update { it.copy(successMessage = null) }
+    }
+
+    fun consumeSaveSuccess() {
+        _state.update { it.copy(changesSavedCorrectly = false) }
+    }
+
+    fun consumeDeleteSuccess() {
+        _state.update { it.copy(bookDeletedSuccessfully = false) }
+    }
+
+    fun deleteBook(id: Int?) = viewModelScope.launch {
+        if (id == null) {
+            _state.update { it.copy(errorMessage = "No se pudo identificar el libro a eliminar.") }
+            return@launch
+        }
+
+        _state.update {
+            it.copy(
+                isDeletingBook = true,
+                errorMessage = null,
+                bookDeletedSuccessfully = false
+            )
+        }
+
+        val result = repository.deleteBook(id)
+        _state.update {
+            it.copy(
+                isDeletingBook = false,
+                bookDeletedSuccessfully = result.isSuccess,
+                selectedBook = if (result.isSuccess) null else it.selectedBook,
+                selectedGenres = if (result.isSuccess) emptyList() else it.selectedGenres,
+                selectedGenre = if (result.isSuccess) null else it.selectedGenre,
+                errorMessage = if (result.isSuccess) null else result.exceptionOrNull()?.message
+                    ?: "No se pudo eliminar el libro."
+            )
+        }
+    }
+
     fun saveBook(
         id: Int?,
         nombre: String,
@@ -50,29 +90,64 @@ class BooksFormViewModel: ViewModel() {
         calificacionText: String,
         generos: List<Genero>
     ) = viewModelScope.launch {
-        val currentBook = _state.value.selectedBook
-        val isCreating = currentBook == null
-        val normalizedIsbn = isbn.trim()
-        val normalizedImagen = imagen.trim()
-        val calificacion = calificacionText.toIntOrNull()
-
-        if (isCreating && normalizedIsbn.isBlank()) {
-            _state.update { it.copy(errorMessage = "El ISBN es obligatorio al crear un libro.") }
+        if (_state.value.loadingChangesCorrectly) {
             return@launch
         }
 
-        if (isCreating && normalizedImagen.isBlank()) {
-            _state.update { it.copy(errorMessage = "La URL de imagen es obligatoria al crear un libro.") }
+        val currentBook = _state.value.selectedBook
+        val isCreating = currentBook == null
+        val normalizedName = nombre.trim()
+        val normalizedAuthor = autor.trim()
+        val normalizedEditorial = editorial.trim()
+        val normalizedSinopsis = sinopsis.trim()
+        val normalizedIsbn = isbn.trim()
+        val isbnToValidate = if (isCreating) normalizedIsbn else currentBook?.isbn?.trim().orEmpty()
+        val normalizedImagen = imagen.trim()
+        val calificacion = calificacionText.toIntOrNull()
+        val normalizedGenres = generos.distinctBy { it.id }
+
+        if (normalizedName.isBlank() || normalizedAuthor.isBlank() || normalizedEditorial.isBlank()) {
+            _state.update { it.copy(errorMessage = "Nombre, autor y editorial son obligatorios.", successMessage = null) }
+            return@launch
+        }
+
+        if (normalizedSinopsis.isBlank()) {
+            _state.update { it.copy(errorMessage = "La sinopsis es obligatoria.", successMessage = null) }
+            return@launch
+        }
+
+        if (normalizedGenres.isEmpty()) {
+            _state.update { it.copy(errorMessage = "Debes seleccionar al menos un genero.", successMessage = null) }
+            return@launch
+        }
+
+        if (isbnToValidate.isBlank()) {
+            _state.update { it.copy(errorMessage = "El ISBN es obligatorio.", successMessage = null) }
+            return@launch
+        }
+
+        if (!isValidIsbnFormat(isbnToValidate)) {
+            _state.update { it.copy(errorMessage = "El ISBN debe tener formato valido (10 o 13 digitos).", successMessage = null) }
+            return@launch
+        }
+
+        if (normalizedImagen.isBlank()) {
+            _state.update { it.copy(errorMessage = "La URL de imagen es obligatoria.", successMessage = null) }
+            return@launch
+        }
+
+        if (normalizedImagen.isNotBlank() && !isValidHttpUrl(normalizedImagen)) {
+            _state.update { it.copy(errorMessage = "La URL de imagen debe iniciar con http:// o https://.", successMessage = null) }
             return@launch
         }
 
         if (calificacion == null || calificacion !in 0..10) {
-            _state.update { it.copy(errorMessage = "La calificación debe estar entre 0 y 10.") }
+            _state.update { it.copy(errorMessage = "La calificación debe estar entre 0 y 10.", successMessage = null) }
             return@launch
         }
 
         if (!isCreating && currentBook.isbn != normalizedIsbn) {
-            _state.update { it.copy(errorMessage = "El ISBN es inmutable y no se puede modificar.") }
+            _state.update { it.copy(errorMessage = "El ISBN es inmutable y no se puede modificar.", successMessage = null) }
             return@launch
         }
 
@@ -80,12 +155,12 @@ class BooksFormViewModel: ViewModel() {
             it.copy(
                 loadingChangesCorrectly = true,
                 changesSavedCorrectly = false,
-                errorMessage = null
+                errorMessage = null,
+                successMessage = null
             )
         }
 
-        val normalizedGenres = generos
-            .distinctBy { it.id }
+        val normalizedGenresWithPivot = normalizedGenres
             .map { genre ->
                 if (isCreating || id == null) {
                     genre
@@ -101,14 +176,14 @@ class BooksFormViewModel: ViewModel() {
 
         val bookToSave = Libro(
             id = if (isCreating) null else id,
-            nombre = nombre.trim(),
-            autor = autor.trim(),
-            editorial = editorial.trim(),
+            nombre = normalizedName,
+            autor = normalizedAuthor,
+            editorial = normalizedEditorial,
             imagen = normalizedImagen,
-            sinopsis = sinopsis.trim(),
+            sinopsis = normalizedSinopsis,
             isbn = if (isCreating) normalizedIsbn else currentBook.isbn,
             calificacion = calificacion,
-            generos = normalizedGenres
+            generos = normalizedGenresWithPivot
         )
 
         val result = if (isCreating) {
@@ -123,9 +198,30 @@ class BooksFormViewModel: ViewModel() {
                 loadingChangesCorrectly = false,
                 changesSavedCorrectly = result != null,
                 isEditModeEnabled = false,
-                errorMessage = if (result == null) "No se pudo guardar el libro." else null
+                bookDeletedSuccessfully = false,
+                errorMessage = if (result == null) "No se pudo guardar el libro." else null,
+                successMessage = if (result != null) {
+                    if (isCreating) "Libro creado correctamente." else "Libro actualizado correctamente."
+                } else {
+                    null
+                }
             )
         }
+    }
+
+    private fun isValidHttpUrl(value: String): Boolean {
+        return try {
+            val uri = java.net.URI(value)
+            val scheme = uri.scheme?.lowercase()
+            (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isValidIsbnFormat(value: String): Boolean {
+        val normalized = value.replace("-", "").replace(" ", "")
+        return normalized.all { it.isDigit() } && (normalized.length == 10 || normalized.length == 13)
     }
 
     fun addGenre(
@@ -193,6 +289,7 @@ class BooksFormViewModel: ViewModel() {
                 selectedBook = bookResult,
                 selectedGenres = bookResult?.generos.orEmpty(),
                 loadingChangesCorrectly = false,
+                bookDeletedSuccessfully = false,
                 errorMessage = if (bookResult == null) "No se pudo cargar el libro." else null
             )
         }
@@ -207,7 +304,10 @@ class BooksFormViewModel: ViewModel() {
                 isEditModeEnabled = true,
                 changesSavedCorrectly = false,
                 loadingChangesCorrectly = false,
-                errorMessage = null
+                bookDeletedSuccessfully = false,
+                isDeletingBook = false,
+                errorMessage = null,
+                successMessage = null
             )
         }
     }

@@ -14,6 +14,16 @@ class BookRepository {
         return emptyList()
     }
 
+    suspend fun getBookListResult(): Result<List<Libro>> {
+        return try {
+            val retroFitInstance = RetrofitInstance.api
+            Result.success(retroFitInstance.listBooks())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
     suspend fun getBookById(id: Int): Libro? {
         try{
             val retroFitInstance = RetrofitInstance.api

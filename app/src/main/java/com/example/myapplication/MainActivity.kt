@@ -14,6 +14,7 @@ import com.example.myapplication.ui.NavScreens
 import com.example.myapplication.ui.ViewModels.BooksFormViewModel
 import com.example.myapplication.ui.ViewModels.BooksViewModel
 import com.example.myapplication.ui.ViewModels.GenreViewModel
+import com.example.myapplication.ui.screens.BookDetailScreen
 import com.example.myapplication.ui.screens.BookFormScreen
 import com.example.myapplication.ui.screens.BookListScreen
 import com.example.myapplication.ui.screens.GenreFormScreen
@@ -59,11 +60,27 @@ fun NavigationApp(
             )
         }
 
+        composable("${NavScreens.BOOK_DETAIL.name}/{bookId}") { backStackEntry ->
+            val bookId = backStackEntry.arguments
+                ?.getString("bookId")
+                ?.toIntOrNull()
+
+            if (bookId != null) {
+                BookDetailScreen(
+                    navController = navController,
+                    bookId = bookId,
+                    formVM = formVM,
+                    listVM = listVM
+                )
+            }
+        }
+
         composable(NavScreens.BOOK_FORM.name) {
             BookFormScreen(
                 navController = navController,
                 bookId = null,
-                formBooksVM = formVM
+                formBooksVM = formVM,
+                listVM = listVM
             )
         }
 
@@ -76,7 +93,8 @@ fun NavigationApp(
             BookFormScreen(
                 navController = navController,
                 bookId = bookId,
-                formBooksVM = formVM
+                formBooksVM = formVM,
+                listVM = listVM
             )
         }
 
