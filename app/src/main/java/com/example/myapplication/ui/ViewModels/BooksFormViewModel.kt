@@ -3,7 +3,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.models.Genero
 import com.example.myapplication.data.models.Libro
-import com.example.myapplication.data.models.LibroGeneroPivot
 import com.example.myapplication.data.repositories.BookRepository
 import com.example.myapplication.data.repositories.GenreRepository
 import com.example.myapplication.ui.states.BookFormUIModel
@@ -12,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.net.URI
 
 class BooksFormViewModel: ViewModel() {
     private val _state: MutableStateFlow<BookFormUIModel> = MutableStateFlow(
@@ -160,19 +160,15 @@ class BooksFormViewModel: ViewModel() {
             )
         }
 
-        val normalizedGenresWithPivot = normalizedGenres
-            .map { genre ->
-                if (isCreating || id == null) {
-                    genre
-                } else {
-                    genre.copy(
-                        pivot = genre.pivot ?: LibroGeneroPivot(
-                            libro_id = id,
-                            genero_id = genre.id
-                        )
-                    )
-                }
-            }
+        val originalGenreIds = currentBook?.generos.orEmpty()
+            .map { it.id }
+            .toSet()
+
+        val genresToAssign = if (isCreating) {
+            normalizedGenres
+        } else {
+            normalizedGenres.filterNot { it.id in originalGenreIds }
+        }
 
         val bookToSave = Libro(
             id = if (isCreating) null else id,
@@ -183,7 +179,7 @@ class BooksFormViewModel: ViewModel() {
             sinopsis = normalizedSinopsis,
             isbn = if (isCreating) normalizedIsbn else currentBook.isbn,
             calificacion = calificacion,
-            generos = normalizedGenresWithPivot
+            generos = emptyList(),
         )
 
         val result = if (isCreating) {
@@ -192,26 +188,67 @@ class BooksFormViewModel: ViewModel() {
             repository.updateBook(id, bookToSave)
         }
 
+        if (result == null) {
+            _state.update {
+                it.copy(
+                    loadingChangesCorrectly = false,
+                    changesSavedCorrectly = false,
+                    errorMessage = "No se pudo guardar el libro.",
+                    successMessage = null
+                )
+            }
+            return@launch
+        }
+
+        val savedBookId = result.id
+        if (savedBookId == null) {
+            _state.update {
+                it.copy(
+                    selectedBook = result,
+                    loadingChangesCorrectly = false,
+                    changesSavedCorrectly = false,
+                    errorMessage = "El libro se guardó, pero el backend no devolvió el ID para asignar géneros.",
+                    successMessage = null
+                )
+            }
+            return@launch
+        }
+
+        val assignError = genresToAssign
+            .map { genre -> repository.asignGenre(savedBookId, genre.id) }
+            .firstOrNull { it.isFailure }
+            ?.exceptionOrNull()
+
+        if (assignError != null) {
+            _state.update {
+                it.copy(
+                    selectedBook = result,
+                    loadingChangesCorrectly = false,
+                    changesSavedCorrectly = false,
+                    errorMessage = assignError.message ?: "El libro se guardó, pero no se pudieron asignar los géneros nuevos.",
+                    successMessage = null
+                )
+            }
+            return@launch
+        }
+
         _state.update {
             it.copy(
-                selectedBook = result ?: it.selectedBook,
+                selectedBook = result.copy(generos = normalizedGenres),
+                selectedGenres = normalizedGenres,
                 loadingChangesCorrectly = false,
-                changesSavedCorrectly = result != null,
+                changesSavedCorrectly = true,
                 isEditModeEnabled = false,
                 bookDeletedSuccessfully = false,
-                errorMessage = if (result == null) "No se pudo guardar el libro." else null,
-                successMessage = if (result != null) {
-                    if (isCreating) "Libro creado correctamente." else "Libro actualizado correctamente."
-                } else {
-                    null
-                }
+                errorMessage = null,
+                successMessage = if (isCreating) "Libro creado correctamente." else "Libro actualizado correctamente."
             )
         }
     }
 
     private fun isValidHttpUrl(value: String): Boolean {
         return try {
-            val uri = java.net.URI(value)
+            val uri = URI(value)
             val scheme = uri.scheme?.lowercase()
             (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
         } catch (_: Exception) {

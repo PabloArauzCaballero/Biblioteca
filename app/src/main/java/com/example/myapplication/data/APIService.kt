@@ -2,6 +2,7 @@ package com.example.myapplication.data
 
 import com.example.myapplication.data.models.Genero
 import com.example.myapplication.data.models.requests.CreateGenreRequest
+import com.example.myapplication.data.models.requests.AsignGenreRequest
 import com.example.myapplication.data.models.Libro
 import retrofit2.http.Body
 import retrofit2.Response
@@ -54,4 +55,8 @@ interface APIService {
         @Path("id") id: Int?
     ): Response<Unit>
 
+    @POST("libro-generos")
+    suspend fun asignBook(
+        @Body request: AsignGenreRequest
+    ): Response<Unit>
 }

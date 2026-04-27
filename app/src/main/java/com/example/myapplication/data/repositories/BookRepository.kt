@@ -2,6 +2,7 @@ package com.example.myapplication.data.repositories
 
 import com.example.myapplication.data.RetrofitInstance
 import com.example.myapplication.data.models.Libro
+import com.example.myapplication.data.models.requests.AsignGenreRequest
 
 class BookRepository {
     suspend fun getBookList(): List<Libro>{
@@ -68,4 +69,24 @@ class BookRepository {
         }
     }
 
+    suspend fun asignGenre(libroId: Int, generoId: Int): Result<Unit> {
+        return try {
+            val response = RetrofitInstance.api.asignBook(
+                AsignGenreRequest(
+                    libro_id = libroId,
+                    genero_id = generoId
+                )
+            )
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No se pudo asignar el género (HTTP ${response.code()})"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
 }
+    
