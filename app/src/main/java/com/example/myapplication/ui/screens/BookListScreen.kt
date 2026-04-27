@@ -1,7 +1,5 @@
 package com.example.myapplication.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -32,15 +32,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,8 +62,19 @@ fun BookListScreen(
     modifier: Modifier = Modifier,
     vm: BooksViewModel = viewModel()
 ) {
+    val state by vm.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            vm.clearError()
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             BookListScreenHeader(navController)
         }
@@ -107,11 +122,51 @@ fun BookList(
                         item = book,
                         onClick = {
                             onNavigate(book.id)
+                        },
+                        onDeleteClick = {
+                            vm.requestDelete(book)
                         }
                     )
                 }
             }
         }
+    }
+
+    val pendingDeleteBook = bookListState.pendingDeleteBook
+    if (pendingDeleteBook != null) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!bookListState.isDeleting) {
+                    vm.cancelDeleteRequest()
+                }
+            },
+            title = {
+                Text("Eliminar libro")
+            },
+            text = {
+                Text("Estas seguro de eliminar '${pendingDeleteBook.nombre}'?")
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !bookListState.isDeleting,
+                    onClick = {
+                        vm.confirmDeleteBook()
+                    }
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !bookListState.isDeleting,
+                    onClick = {
+                        vm.cancelDeleteRequest()
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -131,7 +186,7 @@ fun BookListScreenHeader(
                     IconButton(
                         modifier = Modifier.size(48.dp),
                         onClick = {
-                            navController.navigate("${NavScreens.BOOK_FORM.name}/")
+                            navController.navigate(NavScreens.BOOK_FORM.name)
                         }
                     ) {
                         Icon(
@@ -164,7 +219,8 @@ fun BookListScreenHeader(
 @Composable
 fun BookItem(
     item: Libro,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     /*
         ElevatedCard para poner cartas con sombreado y
@@ -195,13 +251,30 @@ fun BookItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = item.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = item.nombre,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar libro"
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 

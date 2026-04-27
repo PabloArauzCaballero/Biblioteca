@@ -5,8 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -15,8 +13,10 @@ import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.NavScreens
 import com.example.myapplication.ui.ViewModels.BooksFormViewModel
 import com.example.myapplication.ui.ViewModels.BooksViewModel
+import com.example.myapplication.ui.ViewModels.GenreViewModel
 import com.example.myapplication.ui.screens.BookFormScreen
 import com.example.myapplication.ui.screens.BookListScreen
+import com.example.myapplication.ui.screens.GenreFormScreen
 import com.example.myapplication.ui.screens.GenreListScreen
 import com.example.myapplication.ui.screens.HomeScreen
 import com.example.myapplication.ui.theme.MyApplicationTheme
@@ -37,7 +37,8 @@ class MainActivity : ComponentActivity() {
 fun NavigationApp(
     navController:NavHostController = rememberNavController(),
     listVM: BooksViewModel = BooksViewModel(),
-    formVM: BooksFormViewModel = BooksFormViewModel()
+    formVM: BooksFormViewModel = BooksFormViewModel(),
+    genreVM: GenreViewModel = GenreViewModel()
 ) {
     NavHost(
         navController = navController,
@@ -58,6 +59,14 @@ fun NavigationApp(
             )
         }
 
+        composable(NavScreens.BOOK_FORM.name) {
+            BookFormScreen(
+                navController = navController,
+                bookId = null,
+                formBooksVM = formVM
+            )
+        }
+
         composable("${NavScreens.BOOK_FORM.name}/{bookId}") { backStackEntry ->
             // Obtener el id el libro desde el path
             val bookId = backStackEntry.arguments
@@ -66,14 +75,23 @@ fun NavigationApp(
 
             BookFormScreen(
                 navController = navController,
-                bookId = bookId
+                bookId = bookId,
+                formBooksVM = formVM
             )
         }
 
         composable(NavScreens.GENRES_LIST.name){
             GenreListScreen(
                 modifier = Modifier,
-                navController = navController
+                navController = navController,
+                vm = genreVM
+            )
+        }
+
+        composable(NavScreens.GENRE_EDIT.name) {
+            GenreFormScreen(
+                navController = navController,
+                vm = genreVM
             )
         }
 
